@@ -8,9 +8,11 @@ const detectedPlates = new Set();
 // Configuração ajustável
 const captureFrequency = 500; // Frequência de captura em milissegundos
 
-// Acessar a câmera
+// Acessar a câmera traseira
 navigator.mediaDevices
-  .getUserMedia({ video: true })
+  .getUserMedia({
+    video: { facingMode: { exact: "environment" } },
+  })
   .then((stream) => {
     video.srcObject = stream;
     video.addEventListener("play", startProcessing);
@@ -21,7 +23,7 @@ navigator.mediaDevices
 
 function startProcessing() {
   // Configurar a resolução do canvas
-  setResolution({ width: 1080, height: 720 });
+  setResolution({ width: 640, height: 480 });
 
   // Configurar o intervalo de captura
   if (captureInterval) clearInterval(captureInterval);
@@ -45,10 +47,11 @@ function processFrame() {
     const imageData = canvas.toDataURL("image/png");
 
     // Usar Tesseract.js para reconhecimento de texto
-    Tesseract.recognize(imageData, "eng")
+    Tesseract.recognize(imageData, "eng", {
+      logger: (m) => console.log(m), // Log progresso
+    })
       .then(({ data: { text } }) => {
         const sanitizedText = sanitizeText(text);
-
         const plates = findPlates(sanitizedText);
         plates.forEach((plate) => detectedPlates.add(plate));
         updateOutput();

@@ -8,9 +8,15 @@
 </head>
 
 <body>
+
   <h1>Vehicle Plate Recognition</h1>
-  <video id="video" height="480" autoplay style="width: 100%;"></video>
+
+  <h3>Escolha a Câmera</h3>
+  <select id="cameraSelect"></select>
+
+  <video id="video" width="640" height="480" autoplay style="width: 100%;"></video>
   <canvas id="canvas" style="display: none;"></canvas>
+
   <p id="output"></p>
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@v2.1.4/dist/tesseract.min.js"></script>

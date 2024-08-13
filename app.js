@@ -1,6 +1,8 @@
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const output = document.getElementById("output");
+const cameraSelect = document.getElementById("cameraSelect");
+
 let processing = false;
 let captureInterval;
 const detectedPlates = new Set();
@@ -8,16 +10,40 @@ const detectedPlates = new Set();
 // Configuração ajustável
 const captureFrequency = 500; // Frequência de captura em milissegundos
 
-// Acessar a câmera
-navigator.mediaDevices
-  .getUserMedia({ video: true })
-  .then((stream) => {
-    video.srcObject = stream;
-    video.addEventListener("play", startProcessing);
-  })
-  .catch((err) => {
-    console.error("Error accessing the camera: ", err);
+navigator.mediaDevices.enumerateDevices().then((devices) => {
+  const videoDevices = devices.filter((device) => device.kind === "videoinput");
+
+  // Preencher o dropdown com as câmeras
+  videoDevices.forEach((device) => {
+    const option = document.createElement("option");
+    option.value = device.deviceId;
+    option.text = device.label || `Câmera ${cameraSelect.length + 1}`;
+    cameraSelect.appendChild(option);
   });
+
+  // Quando o usuário escolher uma câmera, capturar o vídeo dessa câmera
+  cameraSelect.onchange = () => {
+    startStream(cameraSelect.value);
+  };
+
+  // Iniciar com a primeira câmera por padrão
+  if (videoDevices.length > 0) {
+    startStream(videoDevices[0].deviceId);
+  }
+});
+
+// Acessar a câmera e iniciar o stream
+function startStream(deviceId) {
+  navigator.mediaDevices
+    .getUserMedia({ video: { deviceId: { exact: deviceId } } })
+    .then((stream) => {
+      video.srcObject = stream;
+      video.addEventListener("play", startProcessing);
+    })
+    .catch((err) => {
+      console.error("Error accessing the camera: ", err);
+    });
+}
 
 function startProcessing() {
   // Configurar a resolução do canvas
@@ -47,11 +73,8 @@ function processFrame() {
     // Usar Tesseract.js para reconhecimento de texto
     Tesseract.recognize(imageData, "eng")
       .then(({ data: { text } }) => {
-        const sanitizedText = sanitizeText(text);
-
-        const plates = findPlates(sanitizedText);
-        plates.forEach((plate) => detectedPlates.add(plate));
-        updateOutput();
+        // Exibir o texto reconhecido diretamente
+        output.innerText = `Texto Reconhecido: ${text}`;
         processing = false;
       })
       .catch((err) => {
@@ -59,19 +82,6 @@ function processFrame() {
         processing = false;
       });
   }
-}
-
-// Função para sanitizar o texto lido
-function sanitizeText(text) {
-  return text.replace(/[^A-Z0-9\s]/gi, "");
-}
-
-// Função para localizar o padrão de uma placa de carro brasileiro no texto
-function findPlates(text) {
-  // Padrão para placas no formato antigo (AAA-1234) e novo (ABC1D23)
-  const platePattern = /\b([A-Z]{3}[0-9][A-Z0-9][0-9]{2})\b/g;
-  const matches = text.match(platePattern);
-  return matches || [];
 }
 
 // Função para aplicar pré-processamento na imagem
@@ -88,11 +98,4 @@ function applyPreprocessing(context) {
   }
 
   context.putImageData(imageData, 0, 0);
-}
-
-// Função para atualizar a saída com as placas detectadas
-function updateOutput() {
-  output.innerText = `Detected Plates: ${Array.from(detectedPlates).join(
-    ", "
-  )}`;
 }

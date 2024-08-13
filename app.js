@@ -2,13 +2,15 @@ const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const output = document.getElementById("output");
 const cameraSelect = document.getElementById("cameraSelect");
+const selectedCamera = document.getElementById("selectedCamera");
+const toggleCamera = document.getElementById("toggleCamera");
 
+let type = "user";
 let processing = false;
 let captureInterval;
-const detectedPlates = new Set();
 
 // Configuração ajustável
-const captureFrequency = 500; // Frequência de captura em milissegundos
+const captureFrequency = 200; // Frequência de captura em milissegundos
 
 navigator.mediaDevices.enumerateDevices().then((devices) => {
   const videoDevices = devices.filter((device) => device.kind === "videoinput");
@@ -20,22 +22,21 @@ navigator.mediaDevices.enumerateDevices().then((devices) => {
     option.text = device.label || `Câmera ${cameraSelect.length + 1}`;
     cameraSelect.appendChild(option);
   });
+});
 
-  // Quando o usuário escolher uma câmera, capturar o vídeo dessa câmera
-  cameraSelect.onchange = () => {
-    startStream(cameraSelect.value);
-  };
+selectedCamera.addEventListener("click", () => {
+  startStream({ deviceId: cameraSelect.value });
+});
 
-  // Iniciar com a primeira câmera por padrão
-  if (videoDevices.length > 0) {
-    startStream(videoDevices[0].deviceId);
-  }
+toggleCamera.addEventListener("click", () => {
+  type = type === "user" ? "environment" : "user";
+  startStream({ facingMode: type });
 });
 
 // Acessar a câmera e iniciar o stream
-function startStream(deviceId) {
+function startStream(options) {
   navigator.mediaDevices
-    .getUserMedia({ video: { deviceId: { exact: deviceId } } })
+    .getUserMedia({ audio: false, video: { ...options } })
     .then((stream) => {
       video.srcObject = stream;
       video.addEventListener("play", startProcessing);
@@ -47,7 +48,10 @@ function startStream(deviceId) {
 
 function startProcessing() {
   // Configurar a resolução do canvas
-  setResolution({ width: 1080, height: 720, facingMode: "environment" });
+  setResolution({
+    width: video.width,
+    height: video.height,
+  });
 
   // Configurar o intervalo de captura
   if (captureInterval) clearInterval(captureInterval);
@@ -62,11 +66,9 @@ function setResolution(resolution) {
 function processFrame() {
   if (!processing) {
     processing = true;
+
     const context = canvas.getContext("2d");
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Aplicar pré-processamento na imagem
-    applyPreprocessing(context);
 
     const imageData = canvas.toDataURL("image/png");
 
@@ -82,20 +84,4 @@ function processFrame() {
         processing = false;
       });
   }
-}
-
-// Função para aplicar pré-processamento na imagem
-function applyPreprocessing(context) {
-  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imageData.data;
-
-  // Converter para escala de cinza e aumentar o contraste
-  for (let i = 0; i < data.length; i += 4) {
-    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-    data[i] = avg > 128 ? 255 : 0; // Binarização simples
-    data[i + 1] = avg > 128 ? 255 : 0;
-    data[i + 2] = avg > 128 ? 255 : 0;
-  }
-
-  context.putImageData(imageData, 0, 0);
 }

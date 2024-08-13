@@ -10,7 +10,7 @@ let processing = false;
 let captureInterval;
 
 // Configuração ajustável
-const captureFrequency = 200; // Frequência de captura em milissegundos
+const captureFrequency = 500; // Frequência de captura em milissegundos
 
 navigator.mediaDevices.enumerateDevices().then((devices) => {
   const videoDevices = devices.filter((device) => device.kind === "videoinput");
@@ -69,6 +69,7 @@ function setResolution(resolution) {
 function processFrame() {
   if (!processing) {
     processing = true;
+    output.innerText = "Processando... | " + output.innerText;
 
     const context = canvas.getContext("2d");
     context.drawImage(video, 0, 0, canvas.width, canvas.height);

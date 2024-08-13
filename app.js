@@ -36,7 +36,10 @@ toggleCamera.addEventListener("click", () => {
 // Acessar a câmera e iniciar o stream
 function startStream(options) {
   navigator.mediaDevices
-    .getUserMedia({ audio: false, video: { ...options } })
+    .getUserMedia({
+      audio: false,
+      video: { width: video.width, height: video.height, ...options },
+    })
     .then((stream) => {
       video.srcObject = stream;
       video.addEventListener("play", startProcessing);
